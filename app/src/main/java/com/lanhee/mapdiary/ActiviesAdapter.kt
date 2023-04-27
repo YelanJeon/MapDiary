@@ -29,7 +29,7 @@ class ActiviesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: Dif
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivitiesHolder {
         val holder = ActivitiesHolder(ItemActivitiesBinding.inflate(LayoutInflater.from(parent.context)))
-        holder.itemView.layoutParams.height = Utils.dimensionToPixel(holder.itemView.context, 60f).toInt()
+        holder.itemView.layoutParams = RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, Utils.dimensionToPixel(holder.itemView.context, 60f).toInt())
         holder.binding.tvContent.setOnClickListener {
             onNameViewClickListener?.onClick(getItem(holder.layoutPosition), it, holder.layoutPosition)
         }
