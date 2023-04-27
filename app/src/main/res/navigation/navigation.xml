@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/activities">
+
+    <fragment
+        android:id="@+id/activities"
+        android:name="com.lanhee.mapdiary.ActivitiesFragment"
+        android:label="활동"
+        tools:layout="@layout/fragment_activities" />
+    <fragment
+        android:id="@+id/setting"
+        android:name="com.lanhee.mapdiary.SettingFragment"
+        android:label="설정"
+        tools:layout="@layout/fragment_setting" />
+
+</navigation>
