@@ -1,5 +1,6 @@
 package com.lanhee.mapdiary.dialog
 
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import com.lanhee.mapdiary.ReverseGeocodingService
 import com.lanhee.mapdiary.data.ActivitiesData
 import com.lanhee.mapdiary.data.ReverseGeocodingData
 import com.lanhee.mapdiary.databinding.DlgAddlocationBinding
+import com.lanhee.mapdiary.utils.MyColors
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.MapFragment
 import com.naver.maps.map.NaverMap
@@ -32,9 +34,8 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
 
     var onAddLocation : ((ActivitiesData) -> Unit)? = null
 
-    val mapFragment: MapFragment by lazy {
-        childFragmentManager.findFragmentById(R.id.map) as MapFragment?
-            ?: MapFragment.newInstance()
+    private val mapFragment: MapFragment by lazy {
+        childFragmentManager.findFragmentById(R.id.map) as MapFragment
     }
 
     override fun inflateBinding(inflater: LayoutInflater): DlgAddlocationBinding {
@@ -48,7 +49,7 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
 
         val onClick: ((View) -> Unit) = {
             if(it.id == requireBinding().btnApply.id) {
-                val name = requireBinding().etName.text.toString()
+                val name = if(requireBinding().etName.text.isEmpty()) { requireBinding().etName.hint.toString() } else { requireBinding().etName.text.toString() }
                 val address = requireBinding().tvAddress.text.toString()
                 val newData = ActivitiesData(locationName = name, locationAddress = address, locationLat = latitude, locationLng = longitude)
                 onAddLocation?.invoke(newData)
@@ -57,7 +58,7 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
         }
 
         requireBinding().etName.addTextChangedListener {
-            requireBinding().btnApply.isEnabled = it!!.isNotEmpty()
+            requireBinding().btnApply.isEnabled = it!!.isNotEmpty() || requireBinding().etName.hint.isNotEmpty()
         }
 
         requireBinding().btnApply.setOnClickListener(onClick)
@@ -66,16 +67,22 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
     }
 
     override fun onMapReady(map: NaverMap) {
-        Log.i("TEST", "map async")
-
         val marker = Marker()
         marker.position = LatLng(map.cameraPosition.target.latitude, map.cameraPosition.target.longitude)
-        marker.icon = OverlayImage.fromResource(R.drawable.bg_marker2)
+        marker.icon = OverlayImage.fromResource(R.drawable.ic_marker)
+        marker.iconTintColor = Color.parseColor(MyColors.PRIMARY)
         marker.map = map
+
+        map.uiSettings.apply {
+            isCompassEnabled = false
+            isScaleBarEnabled = false
+            isIndoorLevelPickerEnabled = false
+        }
 
         map.addOnCameraChangeListener{ reason, animated ->
             marker.position = LatLng(map.cameraPosition.target.latitude, map.cameraPosition.target.longitude)
             requireBinding().tvAddress.text = "위치 이동 중"
+            requireBinding().etName.hint = ""
             requireBinding().etName.setText("")
         }
 
@@ -84,7 +91,7 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
             longitude = map.cameraPosition.target.longitude
             marker.position = LatLng(latitude, longitude)
 
-            Toast.makeText(requireContext(), "loc :: $longitude / $latitude", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(requireContext(), "loc :: $longitude / $latitude", Toast.LENGTH_SHORT).show()
 
             RetrofitModule.createRetrofit().create(ReverseGeocodingService::class.java).reverseGeocoding("${longitude},${latitude}").enqueue(object: Callback<ReverseGeocodingData> {
                 override fun onResponse(call: Call<ReverseGeocodingData>, response: Response<ReverseGeocodingData>) {
@@ -100,10 +107,9 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
                                 requireBinding().etName.setText("")
                             }else{
                                 requireBinding().tvAddress.text = text
-                                requireBinding().etName.setText(text)
+                                requireBinding().etName.hint = text
+                                requireBinding().etName.setText("")
                             }
-
-
                         }
                     }
                 }
@@ -117,6 +123,4 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
             })
         }
     }
-
-
 }

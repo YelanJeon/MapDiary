@@ -1,6 +1,7 @@
 package com.lanhee.mapdiary.dialog
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,13 +22,15 @@ class InputDialog : BaseDialogFragment<DlgInputBinding>() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        requireBinding().run {
-            tvDlgTitle.text = title
-            etInput.hint = hint
-            btnApply.setOnClickListener { okClickEvent?.invoke(etInput.text.toString()) }
-            etInput.addTextChangedListener {
-                btnApply.isEnabled = isEnableEmpty || it!!.isNotEmpty()
-            }
+        requireBinding().tvDlgTitle.text = title
+        requireBinding().etInput.hint = hint
+        requireBinding().btnApply.setOnClickListener {
+            okClickEvent?.invoke(requireBinding().etInput.text.toString())
+            dismiss()
+        }
+        requireBinding().etInput.addTextChangedListener {
+            Log.i("TEST", "enable ? ${isEnableEmpty || it!!.isNotEmpty()}")
+            requireBinding().btnApply.isEnabled = isEnableEmpty || it!!.isNotEmpty()
         }
     }
 

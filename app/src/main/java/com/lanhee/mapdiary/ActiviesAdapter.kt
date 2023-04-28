@@ -1,5 +1,6 @@
 package com.lanhee.mapdiary
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,22 +17,29 @@ class ActiviesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: Dif
     }
 
     override fun areContentsTheSame(oldItem: ActivitiesData, newItem: ActivitiesData): Boolean {
-        return oldItem.idx == newItem.idx
+        Log.i("TEST", "areContensTheSame ? ${oldItem.locationName} == ${newItem.locationName}")
+        return oldItem.locationName == newItem.locationName
     }
 }) {
-    private var isModifyMode = false
+    var isModifyMode = false
         set(value) {
           field = value
           notifyItemRangeChanged(0, itemCount)
         }
 
-    var onNameViewClickListener: OnNameViewClicked? = null
+    var onItemClick: ((Int) -> Unit)? = null
+    var onNameViewClickListener: ((ActivitiesData, Int) -> Unit)? = null
+    var onDeleteViewClickListener: ((ActivitiesData, Int) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivitiesHolder {
         val holder = ActivitiesHolder(ItemActivitiesBinding.inflate(LayoutInflater.from(parent.context)))
         holder.itemView.layoutParams = RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, Utils.dimensionToPixel(holder.itemView.context, 60f).toInt())
+        holder.itemView.setOnClickListener { onItemClick?.invoke(holder.layoutPosition) }
         holder.binding.tvContent.setOnClickListener {
-            onNameViewClickListener?.onClick(getItem(holder.layoutPosition), it, holder.layoutPosition)
+            onNameViewClickListener?.invoke(getItem(holder.layoutPosition), holder.layoutPosition)
+        }
+        holder.binding.btnDelete.setOnClickListener {
+            onDeleteViewClickListener?.invoke(getItem(holder.layoutPosition), holder.layoutPosition)
         }
         return holder
     }
@@ -54,10 +62,7 @@ class ActivitiesHolder(val binding: ItemActivitiesBinding): RecyclerView.ViewHol
             binding.tvContent.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
             binding.tvContent.isClickable = false
         }
-        binding.tvNumber.text = data.order.toString()
+        binding.tvNumber.text = (layoutPosition+1).toString()
         binding.tvContent.text = data.locationName
     }
-}
-interface OnNameViewClicked {
-    fun onClick(data: ActivitiesData, view: View, position: Int)
 }

@@ -12,7 +12,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.lanhee.mapdiary.databinding.ActivityMainBinding
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), IncludeFABActivity {
     lateinit var binding: ActivityMainBinding
     lateinit var navController: NavController
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,5 +32,9 @@ class MainActivity : AppCompatActivity() {
             val displayedFragment = fragment.childFragmentManager.fragments[0]
             (displayedFragment as ActivitiesFragment).onFABClick()
         }
+    }
+
+    override fun setFABVisibility(visibility: Int) {
+        binding.fab.visibility = visibility
     }
 }
