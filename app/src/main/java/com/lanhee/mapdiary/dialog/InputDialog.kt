@@ -29,7 +29,6 @@ class InputDialog : BaseDialogFragment<DlgInputBinding>() {
             dismiss()
         }
         requireBinding().etInput.addTextChangedListener {
-            Log.i("TEST", "enable ? ${isEnableEmpty || it!!.isNotEmpty()}")
             requireBinding().btnApply.isEnabled = isEnableEmpty || it!!.isNotEmpty()
         }
     }

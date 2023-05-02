@@ -4,6 +4,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -13,15 +14,14 @@ import com.lanhee.mapdiary.data.ActivitiesData
 import com.lanhee.mapdiary.databinding.ItemActivitiesBinding
 import com.lanhee.mapdiary.utils.MyColors
 import com.lanhee.mapdiary.utils.Utils
+import java.util.Collections
 
-class ActivitiesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: DiffUtil.ItemCallback<ActivitiesData>() {
+class ActivitiesAdapter: ItemMoveCallback.ItemTouchHelperContract, ListAdapter<ActivitiesData, ActivitiesHolder>(object: DiffUtil.ItemCallback<ActivitiesData>() {
     override fun areItemsTheSame(oldItem: ActivitiesData, newItem: ActivitiesData): Boolean {
-        Log.i("TEST", "areItemSame :: ${oldItem.idx} == ${newItem.idx}")
-        return oldItem.idx == newItem.idx
+        return (oldItem.idx == newItem.idx) && (oldItem.order == newItem.order)
     }
 
     override fun areContentsTheSame(oldItem: ActivitiesData, newItem: ActivitiesData): Boolean {
-        Log.i("TEST", "areContentsSame :: ${oldItem.locationName} == ${newItem.locationName}")
         return oldItem == newItem
     }
 }) {
@@ -30,7 +30,6 @@ class ActivitiesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: D
           field = value
           notifyItemRangeChanged(0, itemCount)
         }
-
     var selectPosition = -1
         set(value) {
             val oldPosition = field;
@@ -48,9 +47,10 @@ class ActivitiesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: D
     var onItemClick: ((Int) -> Unit)? = null
     var onNameViewClickListener: ((ActivitiesData, Int) -> Unit)? = null
     var onDeleteViewClickListener: ((ActivitiesData, Int) -> Unit)? = null
+    var dragListener: ItemMoveCallback.StartDragListener? = null
+    var moveListener: (() -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ActivitiesHolder {
-        Log.i("TEST", "onCreateViewHolder")
         val holder = ActivitiesHolder(ItemActivitiesBinding.inflate(LayoutInflater.from(parent.context)))
         holder.itemView.layoutParams = RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, Utils.dimensionToPixel(holder.itemView.context, 60f).toInt())
         holder.itemView.setOnClickListener {
@@ -61,14 +61,45 @@ class ActivitiesAdapter: ListAdapter<ActivitiesData, ActivitiesHolder>(object: D
             onNameViewClickListener?.invoke(getItem(holder.layoutPosition), holder.layoutPosition)
         }
         holder.binding.btnDelete.setOnClickListener {
+            notifyItemRangeChanged(0, itemCount)
             onDeleteViewClickListener?.invoke(getItem(holder.layoutPosition), holder.layoutPosition)
+        }
+        holder.binding.btnReorder.setOnTouchListener { v, event ->
+            if (event?.action == MotionEvent.ACTION_DOWN) {
+                dragListener?.requestDrag(holder)
+            }
+            false
         }
         return holder
     }
 
     override fun onBindViewHolder(holder: ActivitiesHolder, position: Int) {
-        Log.i("TEST", "onBindViewHolder")
         holder.bind(getItem(position), isModifyMode, isSelectPosition(position))
+    }
+
+    override fun onRowMoved(fromPosition: Int, toPosition: Int) {
+        val temp = List(currentList.size) { currentList[it] }
+
+        if(fromPosition<toPosition){
+            for(i in fromPosition until toPosition) {
+                Collections.swap(temp, i, i+1)
+            }
+        }else {
+            for (i in fromPosition downTo toPosition + 1) {
+                Collections.swap(temp, i, i - 1)
+            }
+        }
+        submitList(temp)
+    }
+
+    override fun onRowSelected(viewHolder: ActivitiesHolder) {
+        viewHolder.binding.root.alpha = 0.5f
+    }
+
+    override fun onRowClear(viewHolder: ActivitiesHolder) {
+        viewHolder.binding.root.alpha = 1f
+        notifyItemRangeChanged(0, itemCount)
+        moveListener?.invoke()
     }
 }
 class ActivitiesHolder(val binding: ItemActivitiesBinding): RecyclerView.ViewHolder(binding.root) {
@@ -93,7 +124,7 @@ class ActivitiesHolder(val binding: ItemActivitiesBinding): RecyclerView.ViewHol
                 binding.tvNumber.backgroundTintList = ColorStateList.valueOf(Color.parseColor(MyColors.PRIMARY))
             }
         }
-        binding.tvNumber.text = (layoutPosition+1).toString()
+        binding.tvNumber.text = (data.order+1).toString()
         binding.tvContent.text = data.locationName
     }
 

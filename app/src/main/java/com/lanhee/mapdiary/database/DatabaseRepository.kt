@@ -21,8 +21,9 @@ class DatabaseRepository(private val database: AppDatabase) {
         database.saveDao().update(data)
     }
 
-    suspend fun delete(data: ActivitiesData)
+    suspend fun delete(idx: Int)
     = withContext(database.ioDispatcher) {
-        database.saveDao().delete(data)
+        database.saveDao().delete(idx)
     }
+
 }

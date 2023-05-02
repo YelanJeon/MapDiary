@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
@@ -29,6 +30,8 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
     private var binding: FragmentActivitiesBinding? = null
     private val viewModel by lazy { ViewModelProvider(this, ActivitiesFragmentVM.Factory())[ActivitiesFragmentVM::class.java] }
+
+    private lateinit var touchHelper: ItemTouchHelper
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentActivitiesBinding.inflate(inflater)
@@ -57,6 +60,10 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
                     }
                 }
             })
+
+            val callback = ItemMoveCallback(mAdapter);
+            touchHelper = ItemTouchHelper(callback)
+            touchHelper.attachToRecyclerView(this)
         }
 
         mAdapter.apply {
@@ -81,11 +88,18 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
                 viewModel.removeItem(item)
                 viewModel.removeMarker(position)
             }
+            dragListener = object : ItemMoveCallback.StartDragListener {
+                override fun requestDrag(viewHolder: ActivitiesHolder) {
+                    touchHelper.startDrag(viewHolder)
+                }
+            }
+            moveListener = {
+                viewModel.updateOrders(mAdapter.currentList)
+            }
         }
 
         binding!!.apply {
             btnEdit.setOnClickListener {
-                Toast.makeText(requireContext(), "adapter itemsize > ${mAdapter.itemCount} / manager > ${recycler.layoutManager!!.itemCount}", Toast.LENGTH_SHORT).show()
                 val isModifyMode = if(viewModel.isModifyMode.value == null) true else viewModel.isModifyMode.value!!.not()
                 viewModel.setModifyMode(isModifyMode)
                 mAdapter.isModifyMode = isModifyMode
@@ -119,15 +133,7 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
         viewModel.items.observe(viewLifecycleOwner) {
             //리스트 변경 시
-            Log.i("TEST", "recycler manager exist before ? ${binding!!.recycler.layoutManager} / ${binding!!.recycler.adapter}")
-            Log.i("TEST", "before set | adapter(${mAdapter.itemCount}) :: ${mAdapter.currentList.map { it.idx }}")
-            Log.i("TEST", "list to input (${it.size}) :: ${it.map { it.idx }}")
-            mAdapter.submitList(it) {
-                Log.i("TEST", "recycler manager exist after ? ${binding!!.recycler.layoutManager} / ${binding!!.recycler.adapter}")
-                Log.i("TEST", "after set | adapter(${mAdapter.itemCount}) :: ${mAdapter.currentList.map { it.idx }}")
-                mAdapter.notifyDataSetChanged()
-            }
-
+            mAdapter.submitList(it)
             binding!!.tvStamp.text = "스탬프 ${it.size}개"
         }
 
@@ -140,6 +146,9 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
         viewModel.markers.observe(viewLifecycleOwner) {
             //마커 리스트 변경 시
+            if(viewModel.markers.value!!.isEmpty()) {
+                return@observe
+            }
             viewModel.drawAllPolyLine()
         }
 
@@ -170,7 +179,6 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
             onAddLocation = { newData ->
                 viewModel.addItem(newData)
                 viewModel.addMarker(newData.locationLat, newData.locationLng)
-                viewModel.focusToMarker(viewModel.markers.value!![viewModel.markers.value!!.size-1])
             }
         }.show(parentFragmentManager, "addLocation")
 

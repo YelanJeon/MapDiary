@@ -9,7 +9,7 @@ import com.lanhee.mapdiary.data.ActivitiesData
 
 @Dao
 interface SaveDao {
-    @Query("SELECT * FROM activities WHERE active_date= :dateText")
+    @Query("SELECT * FROM activities WHERE active_date= :dateText ORDER BY my_order ASC")
     fun getAll(dateText: String): List<ActivitiesData>
 
     @Insert
@@ -18,6 +18,6 @@ interface SaveDao {
     @Update
     fun update(data: ActivitiesData)
 
-    @Delete
-    fun delete(data:ActivitiesData)
+    @Query("DELETE FROM activities WHERE idx = :idx")
+    fun delete(idx:Int)
 }

@@ -1,6 +1,7 @@
 package com.lanhee.mapdiary
 
 import android.graphics.Color
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -41,7 +42,14 @@ class ActivitiesFragmentVM: ViewModel() {
     private val _markers = MutableLiveData<List<Marker>>()
     val markers = _markers as LiveData<List<Marker>>
 
-    private val _polyLine = MutableLiveData<PolylineOverlay>()
+    private var _polyLine: PolylineOverlay = PolylineOverlay().apply {
+                                                color = Color.parseColor("#FF6633")
+                                                width = 10
+                                                setPattern(30, 15)
+                                                capType = PolylineOverlay.LineCap.Round
+                                                joinType = PolylineOverlay.LineJoin.Round
+                                                map = this@ActivitiesFragmentVM._map.value
+                                            }
 
     fun setDate(date: Date) {
         _date.value = date
@@ -53,7 +61,7 @@ class ActivitiesFragmentVM: ViewModel() {
         _markers.value?.forEach {
             it.map = map
         }
-        _polyLine.value?.let { it.map = map }
+        _polyLine.map = map
     }
 
     private fun loadActivities() {
@@ -68,7 +76,7 @@ class ActivitiesFragmentVM: ViewModel() {
     }
 
     private fun clearMap() {
-        _polyLine.value?.map = null
+        _polyLine.map = null
         _markers.value?.forEach{
             it.map = null
         }
@@ -81,6 +89,7 @@ class ActivitiesFragmentVM: ViewModel() {
 
     fun addItem(item: ActivitiesData) {
         viewModelScope.launch {
+            item.order = _items.value!!.size
             dbRepository.save(item)
             val temp = if(_items.value == null) {
                 mutableListOf()
@@ -89,6 +98,18 @@ class ActivitiesFragmentVM: ViewModel() {
             }
             temp.add(ActivitiesData(idx=temp.size, item.locationName, item.locationAddress, item.locationLat, item.locationLng, temp.size, _date.value!!))
             _items.value = temp
+        }
+    }
+
+    fun updateOrders(list: List<ActivitiesData>) {
+        viewModelScope.launch {
+            list.forEachIndexed { index, data ->
+                data.order = index
+                dbRepository.update(data)
+            }
+            _items.value = list
+
+            drawAllPolyLine()
         }
     }
 
@@ -106,10 +127,11 @@ class ActivitiesFragmentVM: ViewModel() {
 
     fun removeItem(item: ActivitiesData) {
         viewModelScope.launch {
-            dbRepository.delete(item)
+            dbRepository.delete(item.idx)
             val temp = MutableList(_items.value!!.size) { _items.value!![it] }
             temp.remove(item)
-            _items.value = temp
+
+            updateOrders(temp)
         }
     }
 
@@ -206,31 +228,27 @@ class ActivitiesFragmentVM: ViewModel() {
         }
     }
 
+    private fun reDrawAllMarker() {
+        _markers.value!!.forEach {
+            it.map = null
+        }
+        _markers.value = listOf()
+        _items.value!!.forEach {
+            addMarker(it.locationLat, it.locationLng)
+        }
+    }
+
     fun drawAllPolyLine() {
-        if(_markers.value!!.size <= 1) {
-            return
-        }
-
-        if(_polyLine.value != null) {
-            //기존 라인 지우기
-            _polyLine.value!!.map = null
-        }
-
         val myCoords = List<LatLng>(_markers.value!!.size) { index ->
             LatLng(_markers.value!![index].position.latitude, _markers.value!![index].position.longitude)
         }
 
-        val polyLine = PolylineOverlay().apply {
-            coords = myCoords
-            color = Color.parseColor("#FF6633")
-            width = 10
-            setPattern(30, 15)
-            capType = PolylineOverlay.LineCap.Round
-            joinType = PolylineOverlay.LineJoin.Round
-
-            map = this@ActivitiesFragmentVM._map.value
+        if(myCoords.size > 1) {
+            _polyLine.coords = myCoords
+            _polyLine.map = map.value
+        }else{
+            _polyLine.map = null
         }
-        _polyLine.value = polyLine
     }
 
 

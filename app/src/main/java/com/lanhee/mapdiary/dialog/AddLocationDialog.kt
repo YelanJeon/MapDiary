@@ -1,11 +1,16 @@
 package com.lanhee.mapdiary.dialog
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.widget.addTextChangedListener
 import com.lanhee.mapdiary.R
 import com.lanhee.mapdiary.RetrofitModule
@@ -15,6 +20,7 @@ import com.lanhee.mapdiary.data.ReverseGeocodingData
 import com.lanhee.mapdiary.databinding.DlgAddlocationBinding
 import com.lanhee.mapdiary.utils.MyColors
 import com.naver.maps.geometry.LatLng
+import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.MapFragment
 import com.naver.maps.map.NaverMap
 import com.naver.maps.map.OnMapReadyCallback
@@ -91,8 +97,6 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
             longitude = map.cameraPosition.target.longitude
             marker.position = LatLng(latitude, longitude)
 
-//            Toast.makeText(requireContext(), "loc :: $longitude / $latitude", Toast.LENGTH_SHORT).show()
-
             RetrofitModule.createRetrofit().create(ReverseGeocodingService::class.java).reverseGeocoding("${longitude},${latitude}").enqueue(object: Callback<ReverseGeocodingData> {
                 override fun onResponse(call: Call<ReverseGeocodingData>, response: Response<ReverseGeocodingData>) {
                     CoroutineScope(Dispatchers.Main).launch {
@@ -122,5 +126,17 @@ class AddLocationDialog: BaseDialogFragment<DlgAddlocationBinding>(), OnMapReady
                 }
             })
         }
+
+        val locManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+            val location = locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            location?.let {
+                map.moveCamera(CameraUpdate.scrollTo(LatLng(location.latitude, location.longitude)))
+            }
+        }
+
+
     }
 }
