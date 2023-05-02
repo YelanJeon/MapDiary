@@ -1,16 +1,15 @@
-package com.lanhee.mapdiary.utils
+package com.lanhee.mapdiary
 
 import android.graphics.Color
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.lanhee.mapdiary.R
 import com.lanhee.mapdiary.data.ActivitiesData
 import com.lanhee.mapdiary.database.AppDatabase
 import com.lanhee.mapdiary.database.DatabaseRepository
+import com.lanhee.mapdiary.utils.MyColors
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.geometry.LatLngBounds
 import com.naver.maps.map.CameraAnimation
@@ -46,25 +45,24 @@ class ActivitiesFragmentVM: ViewModel() {
 
     fun setDate(date: Date) {
         _date.value = date
+        loadActivities()
     }
 
     fun setMap(map: NaverMap) {
         _map.value = map
+        _markers.value?.forEach {
+            it.map = map
+        }
+        _polyLine.value?.let { it.map = map }
     }
 
-    fun loadActivities() {
-        Log.i("TEST", "loadActivities")
+    private fun loadActivities() {
         clearMap()
-        Log.i("TEST", "clearMap")
         viewModelScope.launch {
             val list = dbRepository.load(_date.value!!)
-            Log.i("TEST", "load success")
-            Log.i("TEST", "before set items > ${items.value!!.size}")
             setItems(list)
-            Log.i("TEST", "after set items > ${items.value!!.size}")
             list.forEach {
                 addMarker(it.locationLat, it.locationLng)
-                Log.i("TEST", "addmarker success")
             }
         }
     }
@@ -74,7 +72,6 @@ class ActivitiesFragmentVM: ViewModel() {
         _markers.value?.forEach{
             it.map = null
         }
-        _items.value = listOf()
         _markers.value = listOf()
     }
 
@@ -151,7 +148,7 @@ class ActivitiesFragmentVM: ViewModel() {
     }
 
     private fun moveCamera(latitude: Double, longitude: Double) {
-        val cameraUpdate = CameraUpdate.scrollAndZoomTo(LatLng(latitude, longitude), 14.0)
+        val cameraUpdate = CameraUpdate.scrollAndZoomTo(LatLng(latitude, longitude), 16.0)
             .animate(CameraAnimation.Linear)
         map.value!!.moveCamera(cameraUpdate)
     }
@@ -190,6 +187,10 @@ class ActivitiesFragmentVM: ViewModel() {
                 val cameraUpdate = CameraUpdate.fitBounds(LatLngBounds(southWest, northEast))
                     .animate(CameraAnimation.Linear)
                 it.moveCamera(cameraUpdate)
+            }
+
+            _markers.value?.forEach {
+                it.iconTintColor = Color.parseColor(MyColors.PRIMARY)
             }
         }
     }

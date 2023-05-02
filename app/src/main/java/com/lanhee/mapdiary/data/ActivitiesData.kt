@@ -14,4 +14,6 @@ data class ActivitiesData(
     @ColumnInfo("locationLng") val locationLng: Double,        //경도
     @ColumnInfo("order") var order: Int = 0,                 //리스트 상 위치
     @ColumnInfo("active_date") val active_date: Date = Date(System.currentTimeMillis())   //활동 소속 날짜
-)
+) {
+    constructor(data: ActivitiesData) : this(data.idx, data.locationName, data.locationAddress, data.locationLat, data.locationLng, data.order, data.active_date)
+}

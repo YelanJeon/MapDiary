@@ -5,6 +5,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ListAdapter
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -16,7 +18,6 @@ import com.lanhee.mapdiary.databinding.FragmentActivitiesBinding
 import com.lanhee.mapdiary.dialog.AddLocationDialog
 import com.lanhee.mapdiary.dialog.DatePickerDialog
 import com.lanhee.mapdiary.dialog.InputDialog
-import com.lanhee.mapdiary.utils.ActivitiesFragmentVM
 import com.lanhee.mapdiary.utils.Utils
 import com.naver.maps.map.MapFragment
 import com.naver.maps.map.NaverMap
@@ -29,9 +30,6 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
     private var binding: FragmentActivitiesBinding? = null
     private val viewModel by lazy { ViewModelProvider(this, ActivitiesFragmentVM.Factory())[ActivitiesFragmentVM::class.java] }
 
-    private val recyclerView by lazy { binding!!.recycler }
-    private val mAdapter by lazy { ActiviesAdapter() }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentActivitiesBinding.inflate(inflater)
         return binding!!.root
@@ -39,41 +37,9 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel.date.observe(viewLifecycleOwner) {
-            binding!!.tvDate.text = Utils.formatDateForText(viewModel.date.value!!)
-            viewModel.loadActivities()
-        }
 
-        viewModel.items.observe(viewLifecycleOwner) {
-            //리스트 변경 시
-            mAdapter.currentList.forEach { data ->
-                Log.i("TEST", "BEFORE LIST : ${data.idx}")
-            }
-            mAdapter.submitList(it)
-            mAdapter.currentList.forEach { data ->
-                Log.i("TEST", "AFTER LIST : ${data.idx}")
-            }
-            binding!!.tvStamp.text = "스탬프 ${it.size}개"
-            recyclerView.scrollTo(0, 0)
-        }
-
-        viewModel.isModifyMode.observe(viewLifecycleOwner) {
-            //편집하기/완료 전환 시
-            binding!!.btnEdit.text = if(it) "완료" else "편집하기"
-            mAdapter.isModifyMode = it
-            (requireActivity() as IncludeFABActivity).setFABVisibility(if(it) View.GONE else View.VISIBLE)
-        }
-
-        viewModel.markers.observe(viewLifecycleOwner) {
-            //마커 리스트 변경 시
-            viewModel.drawAllPolyLine()
-        }
-
-        viewModel.map.observe(viewLifecycleOwner) {
-            setMapUISetting(it)
-        }
-
-
+        val recyclerView = binding!!.recycler
+        val mAdapter = ActivitiesAdapter()
 
         recyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -86,7 +52,7 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
                         && manager.findLastCompletelyVisibleItemPosition() != mAdapter.itemCount
                     ) {
                         //최상단 스크롤한 경우
-                        Log.i("TEST", "최상단임")
+                        mAdapter.selectPosition = -1
                         viewModel.showAllMarkers()
                     }
                 }
@@ -95,7 +61,11 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
         mAdapter.apply {
             onItemClick = { position ->
-                viewModel.focusToMarker(viewModel.markers.value!![position])
+                if(mAdapter.isSelectPosition(position)) {
+                    viewModel.focusToMarker(viewModel.markers.value!![position])
+                }else{
+                    viewModel.showAllMarkers()
+                }
             }
             onNameViewClickListener = { data, position ->
                 InputDialog().apply {
@@ -115,12 +85,14 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
         binding!!.apply {
             btnEdit.setOnClickListener {
-                if(viewModel.isModifyMode.value == null) {
-                    viewModel.setModifyMode(true)
-                }else{
-                    viewModel.setModifyMode(viewModel.isModifyMode.value!!.not())
+                Toast.makeText(requireContext(), "adapter itemsize > ${mAdapter.itemCount} / manager > ${recycler.layoutManager!!.itemCount}", Toast.LENGTH_SHORT).show()
+                val isModifyMode = if(viewModel.isModifyMode.value == null) true else viewModel.isModifyMode.value!!.not()
+                viewModel.setModifyMode(isModifyMode)
+                mAdapter.isModifyMode = isModifyMode
+                if(isModifyMode) {
+                    mAdapter.selectPosition = -1
+                    viewModel.showAllMarkers()
                 }
-
             }
 
             btnDate.setOnClickListener {
@@ -138,6 +110,44 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
 
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as MapFragment
         mapFragment.getMapAsync(this)
+
+
+
+        viewModel.date.observe(viewLifecycleOwner) {
+            binding!!.tvDate.text = Utils.formatDateForText(viewModel.date.value!!)
+        }
+
+        viewModel.items.observe(viewLifecycleOwner) {
+            //리스트 변경 시
+            Log.i("TEST", "recycler manager exist before ? ${binding!!.recycler.layoutManager} / ${binding!!.recycler.adapter}")
+            Log.i("TEST", "before set | adapter(${mAdapter.itemCount}) :: ${mAdapter.currentList.map { it.idx }}")
+            Log.i("TEST", "list to input (${it.size}) :: ${it.map { it.idx }}")
+            mAdapter.submitList(it) {
+                Log.i("TEST", "recycler manager exist after ? ${binding!!.recycler.layoutManager} / ${binding!!.recycler.adapter}")
+                Log.i("TEST", "after set | adapter(${mAdapter.itemCount}) :: ${mAdapter.currentList.map { it.idx }}")
+                mAdapter.notifyDataSetChanged()
+            }
+
+            binding!!.tvStamp.text = "스탬프 ${it.size}개"
+        }
+
+        viewModel.isModifyMode.observe(viewLifecycleOwner) {
+            //편집하기/완료 전환 시
+            binding!!.btnEdit.text = if(it) "완료" else "편집하기"
+            mAdapter.isModifyMode = it
+            (requireActivity() as IncludeFABActivity).setFABVisibility(if(it) View.GONE else View.VISIBLE)
+        }
+
+        viewModel.markers.observe(viewLifecycleOwner) {
+            //마커 리스트 변경 시
+            viewModel.drawAllPolyLine()
+        }
+
+        viewModel.map.observe(viewLifecycleOwner) {
+            setMapUISetting(it)
+        }
+
+
     }
 
     private fun setMapUISetting(map: NaverMap) {
@@ -169,10 +179,12 @@ class ActivitiesFragment: Fragment(), OnMapReadyCallback {
     override fun onMapReady(map: NaverMap) {
         viewModel.setMap(map)
 
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        viewModel.setDate(Date(System.currentTimeMillis()))
+        if(viewModel.date.value == null) {
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            viewModel.setDate(Date(System.currentTimeMillis()))
+        }
     }
 }
