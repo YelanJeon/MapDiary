@@ -17,4 +17,12 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "MapDiary"
-include ':app'
+include ':data'
+include ':feature-activities'
+include ':feature_addlocation'
+include ':feature_inputdialog'
+include ':feature_datepicker'
+include ':feature-setting'
+include ':utils'
+include ':feature_base'
+include ':feature-main2'
