@@ -215,12 +215,12 @@ class ActivitiesFragmentVM: ViewModel() {
                 maxLng = max(maxLng, lng)
                 minLng = min(minLng, lng)
             }
-            val padding = 0.001
-            val northEast = LatLng(maxLat+(padding*2), maxLng+padding)
-            val southWest = LatLng(minLat-(padding/2), minLng-padding)
+
+            val northEast = LatLng(maxLat, maxLng)
+            val southWest = LatLng(minLat, minLng)
 
             map.value?.let {
-                val cameraUpdate = CameraUpdate.fitBounds(LatLngBounds(southWest, northEast))
+                val cameraUpdate = CameraUpdate.fitBounds(LatLngBounds(southWest, northEast), 100, 300, 100, 50)
                     .animate(CameraAnimation.Linear)
                 it.moveCamera(cameraUpdate)
             }

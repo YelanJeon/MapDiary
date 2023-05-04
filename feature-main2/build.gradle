@@ -48,8 +48,9 @@ dependencies {
     //navigation
     implementation 'androidx.navigation:navigation-fragment-ktx:2.5.3'
     implementation 'androidx.navigation:navigation-ui-ktx:2.5.3'
-    implementation project(path: ':feature_base')
+    implementation project(path: ':feature-base')
     implementation project(path: ':feature-activities')
+    implementation project(path: ':feature-setting')
 
     implementation 'com.naver.maps:map-sdk:3.16.0'
 }

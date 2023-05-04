@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.lanhee.mapdiary.feature.activities'
+    namespace 'com.lanhee.mapdiary.feature.addlocation'
     compileSdk 33
 
     defaultConfig {
@@ -22,36 +22,37 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
+
     buildFeatures {
         viewBinding true
     }
 }
 
 dependencies {
-
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
     implementation project(path: ':data')
-    implementation project(path: ':feature-addlocation')
-    implementation project(path: ':feature-inputdialog')
-    implementation project(path: ':feature-datepicker')
     implementation project(path: ':feature-base')
-    implementation project(path: ':utils')
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
+    //retrofit2
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+
+    //gson
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
     //map
     implementation 'com.naver.maps:map-sdk:3.16.0'
 
-    //viewemodel
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1'
-
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.0'
 }

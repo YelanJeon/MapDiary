@@ -26,8 +26,6 @@ class SettingFragment: Fragment() {
         SettingFragmentVM.Factory()
     )[SettingFragmentVM::class.java] }
 
-    lateinit var serviceIntent: Intent
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
